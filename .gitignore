@@ -1,12 +1,41 @@
-__pycache__/
-*.pyc
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-data/
-*.joblib
-.aws-sam/
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+out/
+dist/
+build/
+.expo/
+.expo-shared/
+web-build/
+
+# Env
 .env
-*.egg-info/
+.env.local
+.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
 .DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Testing
+coverage/
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Turbo
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
