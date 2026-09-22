@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PlayerLevelBadge } from "@/components/PlayerLevelBadge";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -39,6 +40,7 @@ function ProfileContent() {
       <div className="rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
         <p className="text-lg font-semibold text-slate-900">{profile?.username}</p>
         <p className="text-3xl font-extrabold text-emerald-600">{profile?.totalPoints ?? 0} pontos</p>
+        {profile ? <PlayerLevelBadge totalPoints={profile.totalPoints} /> : null}
       </div>
 
       <div>

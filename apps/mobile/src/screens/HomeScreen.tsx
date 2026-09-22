@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
+import { PlayerLevelBadge } from "../components/PlayerLevelBadge";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import { getProfile, getTrackLevel, getTracks, type Difficulty, type Profile, type Track } from "@studyquest/shared";
@@ -62,6 +63,7 @@ export default function HomeScreen({ navigation }: Props) {
       <View style={styles.card}>
         <Text style={styles.greeting}>Olá, {profile?.username}</Text>
         <Text style={styles.points}>{profile?.totalPoints ?? 0} pontos</Text>
+        {profile ? <PlayerLevelBadge totalPoints={profile.totalPoints} /> : null}
       </View>
 
       {tracks.map(({ track, level }) => (

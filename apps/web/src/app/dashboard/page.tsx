@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PlayerLevelBadge } from "@/components/PlayerLevelBadge";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -58,6 +59,7 @@ function DashboardContent() {
       <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h1 className="text-lg font-semibold text-slate-900">Olá, {profile?.username}</h1>
         <p className="mt-1 text-3xl font-extrabold text-emerald-600">{profile?.totalPoints ?? 0} pontos</p>
+        {profile ? <PlayerLevelBadge totalPoints={profile.totalPoints} /> : null}
       </div>
 
       <div className="space-y-4">
