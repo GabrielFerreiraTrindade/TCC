@@ -69,15 +69,18 @@ begin
 
   if not exists (
     select 1 from quiz_sessions
-    where id = p_session_id and user_id = auth.uid()
+    where quiz_sessions.id = p_session_id and quiz_sessions.user_id = auth.uid()
   ) then
     raise exception 'sessão inválida ou não pertence ao usuário autenticado';
   end if;
 
-  select correct_option_id, difficulty, time_limit_seconds, explanation
+  -- Os nomes das colunas de questions precisam ser qualificados com "questions.":
+  -- RETURNS TABLE já declara correct_option_id/explanation como variáveis de retorno,
+  -- e sem qualificação o Postgres não sabe se é a coluna da tabela ou essa variável.
+  select questions.correct_option_id, questions.difficulty, questions.time_limit_seconds, questions.explanation
     into v_correct_option_id, v_difficulty, v_time_limit_seconds, v_explanation
   from questions
-  where id = p_question_id;
+  where questions.id = p_question_id;
 
   if not found then
     raise exception 'pergunta não encontrada';
