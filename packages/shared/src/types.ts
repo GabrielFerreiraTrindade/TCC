@@ -4,6 +4,8 @@ export const DIFFICULTIES: Difficulty[] = ["iniciante", "intermediario", "avanca
 
 export type QuizMode = "diagnostic" | "practice";
 
+export type Locale = "pt" | "en";
+
 export interface Track {
   id: string;
   slug: string;
@@ -23,15 +25,14 @@ export interface QuestionOption {
 }
 
 /**
- * Formato que o cliente enxerga antes de responder: sem gabarito. O banco nem devolve
- * correct_option_id/explanation para anon/authenticated (ver migration 0002) — a correção
- * acontece via RPC `submit_quiz_answer`, que devolve o gabarito só depois da resposta
+ * Formato que o cliente enxerga antes de responder: sem gabarito. Vem só de
+ * get_practice_questions/get_diagnostic_questions (RPCs SECURITY DEFINER — anon/authenticated
+ * não têm mais SELECT direto em `questions` desde a migration 0003). A correção acontece via
+ * RPC `submit_quiz_answer`, que devolve o gabarito e as explicações só depois da resposta
  * (GradedAnswer, abaixo).
  */
 export interface Question {
   id: string;
-  trackId: string;
-  categoryId: string | null;
   difficulty: Difficulty;
   prompt: string;
   options: QuestionOption[];
@@ -80,5 +81,14 @@ export interface GradedAnswer extends AnswerSubmission {
   isCorrect: boolean;
   pointsAwarded: number;
   correctOptionId: string;
-  explanation: string | null;
+  /** Uma explicação por alternativa (id -> texto), certa e erradas. */
+  optionExplanations: Record<string, string>;
 }
+
+export interface PracticeQuestionsResult {
+  questions: Question[];
+  /** Poucas perguntas inéditas restando para esse tema/nível/idioma — hora de gerar mais. */
+  lowInventory: boolean;
+}
+
+export type ReportReason = "gabarito_errado" | "traducao_ruim" | "confusa" | "duplicada" | "outro";

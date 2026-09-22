@@ -4,15 +4,15 @@ import type {
   AnswerSubmission,
   Difficulty,
   GradedAnswer,
+  Locale,
+  PracticeQuestionsResult,
   Profile,
   QuizMode,
   QuizSession,
   Question,
+  ReportReason,
   Track,
 } from "./types";
-
-/** Colunas de `questions` que anon/authenticated ainda podem ler (ver migration 0002). */
-const PUBLIC_QUESTION_COLUMNS = "id, track_id, category_id, difficulty, prompt, options, time_limit_seconds";
 
 export async function getTracks(client: StudyQuestClient): Promise<Track[]> {
   const { data, error } = await client.from("tracks").select("*").order("name");
@@ -26,44 +26,45 @@ export async function getTrackBySlug(client: StudyQuestClient, slug: string): Pr
   return mapTrack(data);
 }
 
-/** Sorteia `countPerLevel` perguntas de cada nível para o diagnóstico inicial. */
+/**
+ * Perguntas do diagnóstico inicial, misturando os 3 níveis. Embaralho de alternativas e
+ * ordem das perguntas acontece no servidor (RPC get_diagnostic_questions, migration 0003).
+ */
 export async function getDiagnosticQuestions(
   client: StudyQuestClient,
   trackId: string,
+  locale: Locale = "pt",
   countPerLevel = 3,
 ): Promise<Question[]> {
-  const levels: Difficulty[] = ["iniciante", "intermediario", "avancado"];
-  const batches = await Promise.all(
-    levels.map((difficulty) =>
-      client
-        .from("questions")
-        .select(PUBLIC_QUESTION_COLUMNS)
-        .eq("track_id", trackId)
-        .eq("difficulty", difficulty)
-        .limit(countPerLevel * 3),
-    ),
-  );
-
-  return batches.flatMap((batch, index) => {
-    if (batch.error) throw batch.error;
-    return shuffle(batch.data).slice(0, countPerLevel).map(mapQuestion).map((q) => ({ ...q, difficulty: levels[index] }));
-  });
+  const { data, error } = await client
+    .rpc("get_diagnostic_questions", { p_track_id: trackId, p_locale: locale, p_count_per_level: countPerLevel })
+    .single();
+  if (error) throw error;
+  return data.questions.map(mapQuestion);
 }
 
+/**
+ * Perguntas de uma sessão de prática: prioriza inéditas para o aluno, depois as que ele
+ * errou (RPC get_practice_questions, migration 0003). `lowInventory` indica que restam
+ * poucas perguntas inéditas — é o sinal para disparar geração de um novo lote por IA.
+ */
 export async function getPracticeQuestions(
   client: StudyQuestClient,
   trackId: string,
   difficulty: Difficulty,
-  count = 10,
-): Promise<Question[]> {
+  locale: Locale = "pt",
+  count = 8,
+): Promise<PracticeQuestionsResult> {
   const { data, error } = await client
-    .from("questions")
-    .select(PUBLIC_QUESTION_COLUMNS)
-    .eq("track_id", trackId)
-    .eq("difficulty", difficulty)
-    .limit(count * 3);
+    .rpc("get_practice_questions", {
+      p_track_id: trackId,
+      p_difficulty: difficulty,
+      p_locale: locale,
+      p_count: count,
+    })
+    .single();
   if (error) throw error;
-  return shuffle(data).slice(0, count).map(mapQuestion);
+  return { questions: data.questions.map(mapQuestion), lowInventory: data.low_inventory };
 }
 
 export async function startSession(
@@ -80,8 +81,9 @@ export async function startSession(
 }
 
 /**
- * Corrige a resposta no servidor via RPC `submit_quiz_answer` (migration 0002): o cliente
- * nunca teve o gabarito antes de responder, só recebe correctOptionId/explanation depois.
+ * Corrige a resposta no servidor via RPC `submit_quiz_answer` (migration 0002/0003): o
+ * cliente nunca teve o gabarito antes de responder, só recebe correctOptionId/
+ * optionExplanations (uma explicação por alternativa) depois.
  */
 export async function submitAnswer(
   client: StudyQuestClient,
@@ -104,7 +106,7 @@ export async function submitAnswer(
     isCorrect: data.is_correct,
     pointsAwarded: data.points_awarded,
     correctOptionId: data.correct_option_id,
-    explanation: data.explanation,
+    optionExplanations: data.option_explanations ?? {},
   };
 }
 
@@ -126,6 +128,21 @@ export async function finishSession(
     .single();
   if (error) throw error;
   return mapQuizSession(data);
+}
+
+/** O aluno sinaliza um problema numa pergunta; após 3 reports distintos ela sai de circulação. */
+export async function reportQuestion(
+  client: StudyQuestClient,
+  questionId: string,
+  reason: ReportReason,
+  detail?: string,
+): Promise<void> {
+  const { error } = await client.rpc("report_question", {
+    p_question_id: questionId,
+    p_reason: reason,
+    p_detail: detail,
+  });
+  if (error) throw error;
 }
 
 export async function getProfile(client: StudyQuestClient, userId: string): Promise<Profile> {
@@ -173,13 +190,4 @@ export async function setTrackLevel(
       { onConflict: "user_id,track_id" },
     );
   if (error) throw error;
-}
-
-function shuffle<T>(items: T[]): T[] {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
 }

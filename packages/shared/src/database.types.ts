@@ -3,6 +3,15 @@
  * Mantidos manualmente; se preferir, substitua por `supabase gen types typescript`
  * apontando para o projeto real.
  */
+/** Formato de cada pergunta dentro do jsonb retornado por get_practice_questions/get_diagnostic_questions. */
+export interface RpcQuestionRow {
+  id: string;
+  prompt: string;
+  options: { id: string; text: string }[];
+  time_limit_seconds: number;
+  difficulty: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -29,6 +38,10 @@ export interface Database {
         Relationships: [];
       };
       questions: {
+        // A partir da migration 0003, o cliente nunca faz SELECT direto nesta tabela
+        // (revogado) — só via get_practice_questions/get_diagnostic_questions/
+        // submit_quiz_answer (SECURITY DEFINER). Este Row reflete o schema real, útil
+        // só para uma eventual ferramenta administrativa com a service_role key.
         Row: {
           id: string;
           track_id: string;
@@ -37,8 +50,12 @@ export interface Database {
           prompt: string;
           options: { id: string; text: string }[];
           correct_option_id: string;
-          explanation: string | null;
+          option_explanations: Record<string, string> | null;
           time_limit_seconds: number;
+          locale: string;
+          status: string;
+          source: string;
+          generation_batch_id: string | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["questions"]["Row"]> & {
@@ -134,8 +151,38 @@ export interface Database {
           is_correct: boolean;
           points_awarded: number;
           correct_option_id: string;
-          explanation: string | null;
+          option_explanations: Record<string, string> | null;
         }[];
+      };
+      get_practice_questions: {
+        Args: {
+          p_track_id: string;
+          p_difficulty: string;
+          p_locale?: string;
+          p_count?: number;
+        };
+        Returns: {
+          questions: RpcQuestionRow[];
+          low_inventory: boolean;
+        }[];
+      };
+      get_diagnostic_questions: {
+        Args: {
+          p_track_id: string;
+          p_locale?: string;
+          p_count_per_level?: number;
+        };
+        Returns: {
+          questions: RpcQuestionRow[];
+        }[];
+      };
+      report_question: {
+        Args: {
+          p_question_id: string;
+          p_reason: string;
+          p_detail?: string;
+        };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

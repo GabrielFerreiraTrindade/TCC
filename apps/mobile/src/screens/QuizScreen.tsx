@@ -10,6 +10,7 @@ import {
   getPracticeQuestions,
   getTrackBySlug,
   getTrackLevel,
+  reportQuestion,
   setTrackLevel,
   startSession,
   submitAnswer,
@@ -19,14 +20,31 @@ import {
   type GradedAnswer,
   type Question,
   type QuizSession,
+  type ReportReason,
 } from "@studyquest/shared";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Quiz">;
 
 type DifficultyTally = Record<Difficulty, { correct: number; total: number }>;
 
+const REPORT_REASON_LABEL: Record<ReportReason, string> = {
+  gabarito_errado: "Gabarito errado",
+  traducao_ruim: "Tradução ruim",
+  confusa: "Pergunta confusa",
+  duplicada: "Duplicada",
+  outro: "Outro motivo",
+};
+
 function ratio({ correct, total }: { correct: number; total: number }): number {
   return total === 0 ? 0 : correct / total;
+}
+
+function triggerLowInventoryGeneration(trackId: string, difficulty: Difficulty) {
+  void supabase.functions
+    .invoke("generate-question-batch", { body: { trackId, difficulty, locale: "pt", count: 10 } })
+    .catch(() => {
+      // melhor esforço: se falhar, o app segue funcionando com o estoque atual
+    });
 }
 
 export default function QuizScreen({ route, navigation }: Props) {
@@ -41,6 +59,8 @@ export default function QuizScreen({ route, navigation }: Props) {
   const [answered, setAnswered] = useState<GradedAnswer | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportedQuestionIds, setReportedQuestionIds] = useState<Set<string>>(new Set());
   const [perDifficulty, setPerDifficulty] = useState<DifficultyTally>({
     iniciante: { correct: 0, total: 0 },
     intermediario: { correct: 0, total: 0 },
@@ -57,10 +77,17 @@ export default function QuizScreen({ route, navigation }: Props) {
       if (!session) return;
       const track = await getTrackBySlug(supabase, trackSlug);
       trackIdRef.current = track.id;
-      const loadedQuestions =
-        mode === "diagnostic"
-          ? await getDiagnosticQuestions(supabase, track.id, 3)
-          : await getPracticeQuestions(supabase, track.id, difficulty ?? "iniciante", 8);
+
+      let loadedQuestions: Question[];
+      if (mode === "diagnostic") {
+        loadedQuestions = await getDiagnosticQuestions(supabase, track.id, "pt", 3);
+      } else {
+        const effectiveDifficulty = difficulty ?? "iniciante";
+        const result = await getPracticeQuestions(supabase, track.id, effectiveDifficulty, "pt", 8);
+        loadedQuestions = result.questions;
+        if (result.lowInventory) triggerLowInventoryGeneration(track.id, effectiveDifficulty);
+      }
+
       const createdSession = await startSession(supabase, {
         userId: session.user.id,
         trackId: track.id,
@@ -116,9 +143,17 @@ export default function QuizScreen({ route, navigation }: Props) {
     }));
   }
 
+  async function handleReport(reason: ReportReason) {
+    if (!currentQuestion) return;
+    await reportQuestion(supabase, currentQuestion.id, reason);
+    setReportedQuestionIds((prev) => new Set(prev).add(currentQuestion.id));
+    setReportOpen(false);
+  }
+
   async function handleNext() {
     if (index + 1 < questions.length) {
       setAnswered(null);
+      setReportOpen(false);
       setIndex((prev) => prev + 1);
       questionStartedAt.current = Date.now();
       return;
@@ -166,6 +201,8 @@ export default function QuizScreen({ route, navigation }: Props) {
     );
   }
 
+  const alreadyReported = reportedQuestionIds.has(currentQuestion.id);
+
   return (
     <View style={styles.container}>
       <View style={styles.progressRow}>
@@ -175,22 +212,47 @@ export default function QuizScreen({ route, navigation }: Props) {
         <Text style={[styles.timer, secondsLeft <= 5 && styles.timerUrgent]}>{secondsLeft}s</Text>
       </View>
 
-      <Text style={styles.difficultyBadge}>{currentQuestion.difficulty.toUpperCase()}</Text>
+      <View style={styles.badgeRow}>
+        <Text style={styles.difficultyBadge}>{currentQuestion.difficulty.toUpperCase()}</Text>
+        <Pressable onPress={() => setReportOpen((prev) => !prev)} disabled={alreadyReported}>
+          <Text style={styles.reportLink}>{alreadyReported ? "Reportado" : "Reportar pergunta"}</Text>
+        </Pressable>
+      </View>
+
+      {reportOpen ? (
+        <View style={styles.reportPanel}>
+          <Text style={styles.reportPanelTitle}>Qual o problema?</Text>
+          <View style={styles.reportOptions}>
+            {(Object.keys(REPORT_REASON_LABEL) as ReportReason[]).map((reason) => (
+              <Pressable key={reason} style={styles.reportOption} onPress={() => void handleReport(reason)}>
+                <Text style={styles.reportOptionText}>{REPORT_REASON_LABEL[reason]}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       <Text style={styles.prompt}>{currentQuestion.prompt}</Text>
 
       <View style={styles.options}>
         {currentQuestion.options.map((option) => {
-          const isSelectedWrong = answered && answered.selectedOptionId === option.id && !answered.isCorrect;
+          const isSelected = answered?.selectedOptionId === option.id;
+          const isSelectedWrong = answered && isSelected && !answered.isCorrect;
           const isCorrectOption = answered && option.id === answered.correctOptionId;
+          const explanation = answered?.optionExplanations[option.id];
+          const showExplanation = answered && explanation && (isSelected || isCorrectOption);
+
           return (
-            <Pressable
-              key={option.id}
-              style={[styles.option, isSelectedWrong && styles.optionWrong, isCorrectOption && styles.optionCorrect]}
-              onPress={() => handleAnswer(option.id)}
-              disabled={!!answered}
-            >
-              <Text style={styles.optionText}>{option.text}</Text>
-            </Pressable>
+            <View key={option.id}>
+              <Pressable
+                style={[styles.option, isSelectedWrong && styles.optionWrong, isCorrectOption && styles.optionCorrect]}
+                onPress={() => handleAnswer(option.id)}
+                disabled={!!answered}
+              >
+                <Text style={styles.optionText}>{option.text}</Text>
+              </Pressable>
+              {showExplanation ? <Text style={styles.optionExplanation}>{explanation}</Text> : null}
+            </View>
           );
         })}
       </View>
@@ -200,7 +262,6 @@ export default function QuizScreen({ route, navigation }: Props) {
           <Text style={styles.feedbackText}>
             {answered.isCorrect ? `Certo! +${answered.pointsAwarded} pontos` : "Não foi dessa vez."}
           </Text>
-          {answered.explanation ? <Text style={styles.explanation}>{answered.explanation}</Text> : null}
           <Pressable style={styles.nextButton} onPress={handleNext}>
             <Text style={styles.nextButtonText}>{index + 1 < questions.length ? "Próxima pergunta" : "Ver resultado"}</Text>
           </Pressable>
@@ -217,8 +278,8 @@ const styles = StyleSheet.create({
   progressText: { color: "#475569", fontWeight: "600" },
   timer: { fontSize: 18, fontWeight: "800", color: "#0f172a" },
   timerUrgent: { color: "#e11d48" },
+  badgeRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   difficultyBadge: {
-    alignSelf: "flex-start",
     backgroundColor: "#e2e8f0",
     color: "#334155",
     fontSize: 12,
@@ -226,18 +287,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    marginBottom: 12,
     overflow: "hidden",
   },
+  reportLink: { fontSize: 12, fontWeight: "600", color: "#94a3b8" },
+  reportPanel: { backgroundColor: "#f1f5f9", borderRadius: 8, padding: 12, marginBottom: 16 },
+  reportPanelTitle: { fontSize: 13, fontWeight: "700", color: "#334155", marginBottom: 8 },
+  reportOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  reportOption: {
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  reportOptionText: { fontSize: 12, fontWeight: "600", color: "#334155" },
   prompt: { fontSize: 20, fontWeight: "700", color: "#0f172a", marginBottom: 20 },
   options: { gap: 12 },
   option: { backgroundColor: "#fff", borderRadius: 10, padding: 16, borderWidth: 1, borderColor: "#e2e8f0" },
   optionWrong: { borderColor: "#e11d48", backgroundColor: "#fff1f2" },
   optionCorrect: { borderColor: "#059669", backgroundColor: "#ecfdf5" },
   optionText: { color: "#0f172a", fontWeight: "500" },
+  optionExplanation: { marginTop: 4, paddingHorizontal: 4, fontSize: 13, color: "#475569" },
   feedback: { marginTop: 20, gap: 8 },
   feedbackText: { fontSize: 16, fontWeight: "700", color: "#0f172a" },
-  explanation: { color: "#475569" },
   nextButton: { backgroundColor: "#4f46e5", borderRadius: 8, paddingVertical: 14, alignItems: "center", marginTop: 8 },
   nextButtonText: { color: "#fff", fontWeight: "700" },
 });
