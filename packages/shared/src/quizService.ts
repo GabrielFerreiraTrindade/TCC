@@ -1,6 +1,5 @@
 import type { StudyQuestClient } from "./supabaseClient";
 import { mapProfile, mapQuestion, mapQuizSession, mapTrack } from "./mappers";
-import { calculatePoints } from "./scoring";
 import type {
   AnswerSubmission,
   Difficulty,
@@ -11,6 +10,15 @@ import type {
   Question,
   Track,
 } from "./types";
+
+/** Colunas de `questions` que anon/authenticated ainda podem ler (ver migration 0002). */
+const PUBLIC_QUESTION_COLUMNS = "id, track_id, category_id, difficulty, prompt, options, time_limit_seconds";
+
+export async function getTracks(client: StudyQuestClient): Promise<Track[]> {
+  const { data, error } = await client.from("tracks").select("*").order("name");
+  if (error) throw error;
+  return data.map(mapTrack);
+}
 
 export async function getTrackBySlug(client: StudyQuestClient, slug: string): Promise<Track> {
   const { data, error } = await client.from("tracks").select("*").eq("slug", slug).single();
@@ -27,7 +35,12 @@ export async function getDiagnosticQuestions(
   const levels: Difficulty[] = ["iniciante", "intermediario", "avancado"];
   const batches = await Promise.all(
     levels.map((difficulty) =>
-      client.from("questions").select("*").eq("track_id", trackId).eq("difficulty", difficulty).limit(countPerLevel * 3),
+      client
+        .from("questions")
+        .select(PUBLIC_QUESTION_COLUMNS)
+        .eq("track_id", trackId)
+        .eq("difficulty", difficulty)
+        .limit(countPerLevel * 3),
     ),
   );
 
@@ -45,7 +58,7 @@ export async function getPracticeQuestions(
 ): Promise<Question[]> {
   const { data, error } = await client
     .from("questions")
-    .select("*")
+    .select(PUBLIC_QUESTION_COLUMNS)
     .eq("track_id", trackId)
     .eq("difficulty", difficulty)
     .limit(count * 3);
@@ -66,37 +79,32 @@ export async function startSession(
   return mapQuizSession(data);
 }
 
-/** Corrige a resposta localmente (sem round-trip ao servidor) e persiste o resultado. */
+/**
+ * Corrige a resposta no servidor via RPC `submit_quiz_answer` (migration 0002): o cliente
+ * nunca teve o gabarito antes de responder, só recebe correctOptionId/explanation depois.
+ */
 export async function submitAnswer(
   client: StudyQuestClient,
   session: QuizSession,
   question: Question,
   submission: AnswerSubmission,
 ): Promise<GradedAnswer> {
-  const isCorrect = submission.selectedOptionId === question.correctOptionId;
-  const pointsAwarded = calculatePoints({
-    difficulty: question.difficulty,
-    isCorrect,
-    timeTakenMs: submission.timeTakenMs,
-    timeLimitSeconds: question.timeLimitSeconds,
-  });
-
-  const { error } = await client.from("quiz_answers").insert({
-    session_id: session.id,
-    question_id: question.id,
-    selected_option_id: submission.selectedOptionId,
-    is_correct: isCorrect,
-    time_taken_ms: submission.timeTakenMs,
-    points_awarded: pointsAwarded,
-  });
+  const { data, error } = await client
+    .rpc("submit_quiz_answer", {
+      p_session_id: session.id,
+      p_question_id: question.id,
+      p_selected_option_id: submission.selectedOptionId,
+      p_time_taken_ms: submission.timeTakenMs,
+    })
+    .single();
   if (error) throw error;
 
   return {
     ...submission,
-    isCorrect,
-    pointsAwarded,
-    correctOptionId: question.correctOptionId,
-    explanation: question.explanation,
+    isCorrect: data.is_correct,
+    pointsAwarded: data.points_awarded,
+    correctOptionId: data.correct_option_id,
+    explanation: data.explanation,
   };
 }
 
@@ -134,6 +142,37 @@ export async function getLeaderboard(client: StudyQuestClient, limit = 20): Prom
     .limit(limit);
   if (error) throw error;
   return data.map(mapProfile);
+}
+
+/** Nível atual do usuário numa trilha, persistido no banco (sincroniza entre dispositivos). */
+export async function getTrackLevel(
+  client: StudyQuestClient,
+  userId: string,
+  trackId: string,
+): Promise<Difficulty | null> {
+  const { data, error } = await client
+    .from("user_track_levels")
+    .select("level")
+    .eq("user_id", userId)
+    .eq("track_id", trackId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.level as Difficulty | undefined) ?? null;
+}
+
+export async function setTrackLevel(
+  client: StudyQuestClient,
+  userId: string,
+  trackId: string,
+  level: Difficulty,
+): Promise<void> {
+  const { error } = await client
+    .from("user_track_levels")
+    .upsert(
+      { user_id: userId, track_id: trackId, level, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,track_id" },
+    );
+  if (error) throw error;
 }
 
 function shuffle<T>(items: T[]): T[] {

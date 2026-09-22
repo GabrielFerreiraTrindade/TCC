@@ -12,7 +12,7 @@ const LEVEL_LABEL: Record<Difficulty, string> = {
 };
 
 export default function ResultsScreen({ route, navigation }: Props) {
-  const { mode, totalPoints, correctCount, questionsCount, recommendedLevel } = route.params;
+  const { trackSlug, mode, totalPoints, correctCount, questionsCount, recommendedLevel } = route.params;
   const accuracy = questionsCount === 0 ? 0 : Math.round((correctCount / questionsCount) * 100);
 
   return (
@@ -32,7 +32,7 @@ export default function ResultsScreen({ route, navigation }: Props) {
 
       <Pressable
         style={styles.button}
-        onPress={() => navigation.replace("Quiz", { mode: "practice", difficulty: recommendedLevel })}
+        onPress={() => navigation.replace("Quiz", { trackSlug, mode: "practice", difficulty: recommendedLevel })}
       >
         <Text style={styles.buttonText}>Praticar mais</Text>
       </Pressable>

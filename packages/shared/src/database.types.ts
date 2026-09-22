@@ -105,9 +105,39 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["quiz_answers"]["Row"]>;
         Relationships: [];
       };
+      user_track_levels: {
+        Row: {
+          user_id: string;
+          track_id: string;
+          level: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["user_track_levels"]["Row"]> & {
+          user_id: string;
+          track_id: string;
+          level: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_track_levels"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      submit_quiz_answer: {
+        Args: {
+          p_session_id: string;
+          p_question_id: string;
+          p_selected_option_id: string;
+          p_time_taken_ms: number;
+        };
+        Returns: {
+          is_correct: boolean;
+          points_awarded: number;
+          correct_option_id: string;
+          explanation: string | null;
+        }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

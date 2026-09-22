@@ -4,8 +4,9 @@ export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Home: undefined;
-  Quiz: { mode: QuizMode; difficulty: Difficulty | null };
+  Quiz: { trackSlug: string; mode: QuizMode; difficulty: Difficulty | null };
   Results: {
+    trackSlug: string;
     mode: QuizMode;
     totalPoints: number;
     correctCount: number;

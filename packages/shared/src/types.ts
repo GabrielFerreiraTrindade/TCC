@@ -22,6 +22,12 @@ export interface QuestionOption {
   text: string;
 }
 
+/**
+ * Formato que o cliente enxerga antes de responder: sem gabarito. O banco nem devolve
+ * correct_option_id/explanation para anon/authenticated (ver migration 0002) — a correção
+ * acontece via RPC `submit_quiz_answer`, que devolve o gabarito só depois da resposta
+ * (GradedAnswer, abaixo).
+ */
 export interface Question {
   id: string;
   trackId: string;
@@ -29,17 +35,7 @@ export interface Question {
   difficulty: Difficulty;
   prompt: string;
   options: QuestionOption[];
-  correctOptionId: string;
-  explanation: string | null;
   timeLimitSeconds: number;
-}
-
-/** Question shape safe to send to the client before it is answered (no answer key). */
-export type PublicQuestion = Omit<Question, "correctOptionId" | "explanation">;
-
-export function toPublicQuestion(question: Question): PublicQuestion {
-  const { correctOptionId: _correctOptionId, explanation: _explanation, ...publicFields } = question;
-  return publicFields;
 }
 
 export interface Profile {

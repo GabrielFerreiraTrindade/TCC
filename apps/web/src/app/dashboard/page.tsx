@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { getStoredLevel } from "@/lib/levelStorage";
-import { getProfile, getTrackBySlug, type Difficulty, type Profile, type Track } from "@studyquest/shared";
+import { getProfile, getTrackLevel, getTracks, type Difficulty, type Profile, type Track } from "@studyquest/shared";
 
 const LEVEL_LABEL: Record<Difficulty, string> = {
   iniciante: "Iniciante",
@@ -14,24 +13,30 @@ const LEVEL_LABEL: Record<Difficulty, string> = {
   avancado: "Avançado",
 };
 
+interface TrackWithLevel {
+  track: Track;
+  level: Difficulty | null;
+}
+
 function DashboardContent() {
   const { session, signOut } = useAuth();
   const router = useRouter();
-  const [track, setTrack] = useState<Track | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [level, setLevel] = useState<Difficulty | null>(null);
+  const [tracks, setTracks] = useState<TrackWithLevel[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!session) return;
     setLoading(true);
-    const [trackResult, profileResult] = await Promise.all([
-      getTrackBySlug(supabase, "ccna"),
-      getProfile(supabase, session.user.id),
-    ]);
-    setTrack(trackResult);
+    const [profileResult, tracksResult] = await Promise.all([getProfile(supabase, session.user.id), getTracks(supabase)]);
     setProfile(profileResult);
-    setLevel(getStoredLevel(session.user.id, trackResult.id));
+    const withLevels = await Promise.all(
+      tracksResult.map(async (track) => ({
+        track,
+        level: await getTrackLevel(supabase, session.user.id, track.id),
+      })),
+    );
+    setTracks(withLevels);
     setLoading(false);
   }, [session]);
 
@@ -40,7 +45,7 @@ function DashboardContent() {
     load();
   }, [load]);
 
-  if (loading || !track) {
+  if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
@@ -55,33 +60,37 @@ function DashboardContent() {
         <p className="mt-1 text-3xl font-extrabold text-emerald-600">{profile?.totalPoints ?? 0} pontos</p>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <h2 className="text-xl font-bold text-slate-900">{track.name}</h2>
-        <p className="mt-1 text-slate-600">{track.description}</p>
+      <div className="space-y-4">
+        {tracks.map(({ track, level }) => (
+          <div key={track.id} className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <h2 className="text-xl font-bold text-slate-900">{track.name}</h2>
+            <p className="mt-1 text-slate-600">{track.description}</p>
 
-        {level ? (
-          <>
-            <p className="mt-4 font-semibold text-slate-800">Seu nível atual: {LEVEL_LABEL[level]}</p>
-            <button
-              onClick={() => router.push(`/quiz?mode=practice&difficulty=${level}`)}
-              className="mt-3 w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
-            >
-              Praticar ({LEVEL_LABEL[level]})
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="mt-4 font-semibold text-slate-800">
-              Faça o diagnóstico inicial para descobrirmos seu nível.
-            </p>
-            <button
-              onClick={() => router.push("/quiz?mode=diagnostic")}
-              className="mt-3 w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
-            >
-              Iniciar diagnóstico
-            </button>
-          </>
-        )}
+            {level ? (
+              <>
+                <p className="mt-4 font-semibold text-slate-800">Seu nível atual: {LEVEL_LABEL[level]}</p>
+                <button
+                  onClick={() => router.push(`/quiz?track=${track.slug}&mode=practice&difficulty=${level}`)}
+                  className="mt-3 w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
+                >
+                  Praticar ({LEVEL_LABEL[level]})
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mt-4 font-semibold text-slate-800">
+                  Faça o diagnóstico inicial para descobrirmos seu nível.
+                </p>
+                <button
+                  onClick={() => router.push(`/quiz?track=${track.slug}&mode=diagnostic`)}
+                  className="mt-3 w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
+                >
+                  Iniciar diagnóstico
+                </button>
+              </>
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="flex justify-center gap-6 text-sm font-semibold text-slate-600">

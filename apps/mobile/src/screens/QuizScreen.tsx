@@ -4,12 +4,13 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
-import { getStoredLevel, setStoredLevel } from "../lib/levelStorage";
 import {
   finishSession,
   getDiagnosticQuestions,
   getPracticeQuestions,
   getTrackBySlug,
+  getTrackLevel,
+  setTrackLevel,
   startSession,
   submitAnswer,
   suggestNextLevel,
@@ -29,7 +30,7 @@ function ratio({ correct, total }: { correct: number; total: number }): number {
 }
 
 export default function QuizScreen({ route, navigation }: Props) {
-  const { mode, difficulty } = route.params;
+  const { trackSlug, mode, difficulty } = route.params;
   const { session } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export default function QuizScreen({ route, navigation }: Props) {
     let cancelled = false;
     async function setup() {
       if (!session) return;
-      const track = await getTrackBySlug(supabase, "ccna");
+      const track = await getTrackBySlug(supabase, trackSlug);
       trackIdRef.current = track.id;
       const loadedQuestions =
         mode === "diagnostic"
@@ -76,7 +77,7 @@ export default function QuizScreen({ route, navigation }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [session, mode, difficulty]);
+  }, [session, trackSlug, mode, difficulty]);
 
   useEffect(() => {
     if (!currentQuestion || answered) return;
@@ -142,12 +143,13 @@ export default function QuizScreen({ route, navigation }: Props) {
         avancado: ratio(perDifficulty.avancado),
       });
     } else {
-      const currentLevel = difficulty ?? (await getStoredLevel(session.user.id, trackIdRef.current)) ?? "iniciante";
+      const currentLevel = difficulty ?? (await getTrackLevel(supabase, session.user.id, trackIdRef.current)) ?? "iniciante";
       recommendedLevel = suggestNextLevel(currentLevel, correctCount / questions.length);
     }
-    await setStoredLevel(session.user.id, trackIdRef.current, recommendedLevel);
+    await setTrackLevel(supabase, session.user.id, trackIdRef.current, recommendedLevel);
 
     navigation.replace("Results", {
+      trackSlug,
       mode,
       totalPoints,
       correctCount,

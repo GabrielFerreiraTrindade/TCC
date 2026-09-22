@@ -12,10 +12,25 @@ import type {
 
 type TrackRow = Database["public"]["Tables"]["tracks"]["Row"];
 type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
-type QuestionRow = Database["public"]["Tables"]["questions"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type QuizSessionRow = Database["public"]["Tables"]["quiz_sessions"]["Row"];
 type QuizAnswerRow = Database["public"]["Tables"]["quiz_answers"]["Row"];
+
+/**
+ * Só as colunas que anon/authenticated ainda conseguem ler de `questions` (ver migration
+ * 0002 — correct_option_id/explanation foram revogadas). Deliberadamente um tipo à parte
+ * do `Database["public"]["Tables"]["questions"]["Row"]` completo, que ainda declara essas
+ * colunas (reflete o schema da tabela, não os grants de coluna por role).
+ */
+interface PublicQuestionRow {
+  id: string;
+  track_id: string;
+  category_id: string | null;
+  difficulty: string;
+  prompt: string;
+  options: { id: string; text: string }[];
+  time_limit_seconds: number;
+}
 
 export function mapTrack(row: TrackRow): Track {
   return { id: row.id, slug: row.slug, name: row.name, description: row.description };
@@ -25,7 +40,7 @@ export function mapCategory(row: CategoryRow): Category {
   return { id: row.id, trackId: row.track_id, name: row.name };
 }
 
-export function mapQuestion(row: QuestionRow): Question {
+export function mapQuestion(row: PublicQuestionRow): Question {
   return {
     id: row.id,
     trackId: row.track_id,
@@ -33,8 +48,6 @@ export function mapQuestion(row: QuestionRow): Question {
     difficulty: row.difficulty as Difficulty,
     prompt: row.prompt,
     options: row.options,
-    correctOptionId: row.correct_option_id,
-    explanation: row.explanation,
     timeLimitSeconds: row.time_limit_seconds,
   };
 }

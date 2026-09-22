@@ -57,30 +57,29 @@ separado).
     com acurácia < 40%, e mantém o nível no meio-termo.
 - Ambas as funções têm testes unitários (`vitest`) em `packages/shared/src/*.test.ts`.
 
-### Simplificações conscientes deste MVP
+### Correção de respostas e nivelamento (Fase 0)
 
-- **Correção da resposta no cliente**: `submitAnswer` recebe a pergunta já com o gabarito e
-  calcula pontos localmente antes de gravar no Supabase. Isso evita precisar de uma função de
-  borda (Edge Function) só para conferir respostas, mas tecnicamente permite inspecionar a
-  rede para ver o gabarito antes de responder. Para um ambiente de certificação real, o
-  próximo passo seria mover a correção para uma Supabase Edge Function que só devolve
-  `PublicQuestion` (tipo já preparado em `types.ts`) ao cliente.
-- **Nível atual por trilha fica salvo localmente** (`localStorage` na web, `AsyncStorage` no
-  mobile), não em uma tabela. Simples de implementar e suficiente para o MVP; evolução natural
-  é uma coluna `profiles_tracks.current_level` no Postgres para sincronizar entre
-  dispositivos.
+- **Correção no servidor**: `anon`/`authenticated` não enxergam mais `correct_option_id`/
+  `explanation` de `questions` (revogado por `GRANT`/`REVOKE` de coluna — migration `0002`). A
+  resposta é conferida pela função `submit_quiz_answer` (Postgres, `SECURITY DEFINER`), que
+  calcula os pontos e grava em `quiz_answers`; o cliente só recebe o gabarito depois de
+  responder. A fórmula de pontos existe duplicada em SQL (na função) e em `scoring.ts` — ver
+  `CLAUDE.md` para o porquê e o cuidado ao alterar uma sem a outra.
+- **Nível atual por trilha** fica em `user_track_levels` (uma linha por usuário+trilha),
+  sincronizado entre dispositivos — não é mais local ao aparelho.
 
 ## Configurando o Supabase
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Rode a migration e o seed. Duas formas:
-   - **SQL Editor** do painel: cole o conteúdo de `supabase/migrations/0001_init.sql` e rode,
-     depois cole `supabase/seed.sql` e rode.
+2. Rode, **nessa ordem**, as migrations e os seeds. Duas formas:
+   - **SQL Editor** do painel: cole o conteúdo de cada arquivo abaixo e rode, um de cada vez.
    - **Script deste repo** (roda do seu terminal, sem colar no navegador):
      ```bash
      export DATABASE_URL="postgresql://...connection string do Supabase..."  # Settings → Database
      pnpm db:run supabase/migrations/0001_init.sql
+     pnpm db:run supabase/migrations/0002_server_side_grading_and_tracks.sql
      pnpm db:run supabase/seed.sql
+     pnpm db:run supabase/seed_fase0_logica_programacao.sql
      ```
      Prefira a connection string da variante **Session pooler** (compatível com redes só-IPv4).
 3. Em **Authentication → Providers**, deixe o login por e-mail/senha habilitado (padrão).
@@ -120,10 +119,17 @@ pnpm typecheck                                # tsc --noEmit em todos os pacotes
 pnpm --filter @studyquest/web build           # build de produção do Next.js
 ```
 
-## Roadmap sugerido
+## Roadmap
 
-- Mover a correção de respostas para uma Supabase Edge Function (esconder o gabarito do
-  cliente).
-- Persistir o nível atual por trilha no Postgres (hoje é local ao dispositivo).
-- Mais trilhas além do CCNA (basta inserir em `tracks`/`questions`; nenhum código muda).
-- Notificações push (Expo Notifications) para lembrar de estudar.
+Fase 0 (concluída): multi-tema, correção no servidor, nível persistido no banco. Próximas fases
+do TCC (ver `CLAUDE.md` para o estado detalhado):
+
+- **Fase 1** — suporte a português e inglês.
+- **Fase 2** — trilhas como jornada visual (progresso por nível, não só o dado cru).
+- **Fase 3** — teste de nivelamento com IA (Edge Function + Claude API para perguntas abertas).
+- **Fase 4** — flashcards com repetição espaçada (SM-2), com opção de correção por IA ou
+  autoavaliação manual.
+- **Fase 5** — monitoramento ativo: flashcards extras gerados por IA sobre pontos fracos,
+  notificações diárias, sugestão automática de subir/descer de nível.
+- **Fase 6** — painel de progresso, testes das partes principais e documentação de arquitetura
+  para o capítulo de desenvolvimento do TCC.

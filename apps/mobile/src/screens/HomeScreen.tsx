@@ -4,8 +4,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
-import { getStoredLevel } from "../lib/levelStorage";
-import { getProfile, getTrackBySlug, type Difficulty, type Profile, type Track } from "@studyquest/shared";
+import { getProfile, getTrackLevel, getTracks, type Difficulty, type Profile, type Track } from "@studyquest/shared";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
@@ -15,23 +14,29 @@ const LEVEL_LABEL: Record<Difficulty, string> = {
   avancado: "Avançado",
 };
 
+interface TrackWithLevel {
+  track: Track;
+  level: Difficulty | null;
+}
+
 export default function HomeScreen({ navigation }: Props) {
   const { session, signOut } = useAuth();
-  const [track, setTrack] = useState<Track | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [level, setLevel] = useState<Difficulty | null>(null);
+  const [tracks, setTracks] = useState<TrackWithLevel[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!session) return;
     setLoading(true);
-    const [trackResult, profileResult] = await Promise.all([
-      getTrackBySlug(supabase, "ccna"),
-      getProfile(supabase, session.user.id),
-    ]);
-    setTrack(trackResult);
+    const [profileResult, tracksResult] = await Promise.all([getProfile(supabase, session.user.id), getTracks(supabase)]);
     setProfile(profileResult);
-    setLevel(await getStoredLevel(session.user.id, trackResult.id));
+    const withLevels = await Promise.all(
+      tracksResult.map(async (track) => ({
+        track,
+        level: await getTrackLevel(supabase, session.user.id, track.id),
+      })),
+    );
+    setTracks(withLevels);
     setLoading(false);
   }, [session]);
 
@@ -41,7 +46,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   useEffect(() => navigation.addListener("focus", load), [navigation, load]);
 
-  if (loading || !track) {
+  if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator />
@@ -59,32 +64,34 @@ export default function HomeScreen({ navigation }: Props) {
         <Text style={styles.points}>{profile?.totalPoints ?? 0} pontos</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.trackName}>{track.name}</Text>
-        <Text style={styles.trackDescription}>{track.description}</Text>
+      {tracks.map(({ track, level }) => (
+        <View key={track.id} style={styles.card}>
+          <Text style={styles.trackName}>{track.name}</Text>
+          <Text style={styles.trackDescription}>{track.description}</Text>
 
-        {level ? (
-          <>
-            <Text style={styles.levelLabel}>Seu nível atual: {LEVEL_LABEL[level]}</Text>
-            <Pressable
-              style={styles.primaryButton}
-              onPress={() => navigation.navigate("Quiz", { mode: "practice", difficulty: level })}
-            >
-              <Text style={styles.primaryButtonText}>Praticar ({LEVEL_LABEL[level]})</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <Text style={styles.levelLabel}>Faça o diagnóstico inicial para descobrirmos seu nível.</Text>
-            <Pressable
-              style={styles.primaryButton}
-              onPress={() => navigation.navigate("Quiz", { mode: "diagnostic", difficulty: null })}
-            >
-              <Text style={styles.primaryButtonText}>Iniciar diagnóstico</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
+          {level ? (
+            <>
+              <Text style={styles.levelLabel}>Seu nível atual: {LEVEL_LABEL[level]}</Text>
+              <Pressable
+                style={styles.primaryButton}
+                onPress={() => navigation.navigate("Quiz", { trackSlug: track.slug, mode: "practice", difficulty: level })}
+              >
+                <Text style={styles.primaryButtonText}>Praticar ({LEVEL_LABEL[level]})</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.levelLabel}>Faça o diagnóstico inicial para descobrirmos seu nível.</Text>
+              <Pressable
+                style={styles.primaryButton}
+                onPress={() => navigation.navigate("Quiz", { trackSlug: track.slug, mode: "diagnostic", difficulty: null })}
+              >
+                <Text style={styles.primaryButtonText}>Iniciar diagnóstico</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      ))}
 
       <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate("Profile")}>
         <Text style={styles.secondaryButtonText}>Perfil e ranking</Text>

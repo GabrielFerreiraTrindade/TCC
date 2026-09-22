@@ -5,12 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { getStoredLevel, setStoredLevel } from "@/lib/levelStorage";
 import {
   finishSession,
   getDiagnosticQuestions,
   getPracticeQuestions,
   getTrackBySlug,
+  getTrackLevel,
+  setTrackLevel,
   startSession,
   submitAnswer,
   suggestNextLevel,
@@ -30,6 +31,7 @@ function ratio({ correct, total }: { correct: number; total: number }): number {
 
 function QuizContent() {
   const searchParams = useSearchParams();
+  const trackSlug = searchParams.get("track") ?? "ccna";
   const mode = (searchParams.get("mode") as QuizMode | null) ?? "practice";
   const difficulty = searchParams.get("difficulty") as Difficulty | null;
 
@@ -58,7 +60,7 @@ function QuizContent() {
     let cancelled = false;
     async function setup() {
       if (!session) return;
-      const track = await getTrackBySlug(supabase, "ccna");
+      const track = await getTrackBySlug(supabase, trackSlug);
       trackIdRef.current = track.id;
       const loadedQuestions =
         mode === "diagnostic"
@@ -80,7 +82,7 @@ function QuizContent() {
     return () => {
       cancelled = true;
     };
-  }, [session, mode, difficulty]);
+  }, [session, trackSlug, mode, difficulty]);
 
   useEffect(() => {
     if (!currentQuestion || answered) return;
@@ -147,12 +149,13 @@ function QuizContent() {
         avancado: ratio(perDifficulty.avancado),
       });
     } else {
-      const currentLevel = difficulty ?? getStoredLevel(session.user.id, trackIdRef.current) ?? "iniciante";
+      const currentLevel = difficulty ?? (await getTrackLevel(supabase, session.user.id, trackIdRef.current)) ?? "iniciante";
       recommendedLevel = suggestNextLevel(currentLevel, correctCount / questions.length);
     }
-    setStoredLevel(session.user.id, trackIdRef.current, recommendedLevel);
+    await setTrackLevel(supabase, session.user.id, trackIdRef.current, recommendedLevel);
 
     const params = new URLSearchParams({
+      track: trackSlug,
       mode,
       totalPoints: String(totalPoints),
       correctCount: String(correctCount),

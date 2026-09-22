@@ -16,6 +16,7 @@ function ResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const trackSlug = searchParams.get("track") ?? "ccna";
   const mode = searchParams.get("mode") ?? "practice";
   const totalPoints = Number(searchParams.get("totalPoints") ?? 0);
   const correctCount = Number(searchParams.get("correctCount") ?? 0);
@@ -41,7 +42,7 @@ function ResultsContent() {
       </div>
 
       <button
-        onClick={() => router.replace(`/quiz?mode=practice&difficulty=${recommendedLevel}`)}
+        onClick={() => router.replace(`/quiz?track=${trackSlug}&mode=practice&difficulty=${recommendedLevel}`)}
         className="w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
       >
         Praticar mais
