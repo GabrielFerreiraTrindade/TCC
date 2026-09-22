@@ -9,10 +9,14 @@
     "build:web": "pnpm --filter @studyquest/web build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "db:run": "node scripts/run-sql.mjs"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "devDependencies": {
+    "pg": "^8.13.1"
+  }
 }

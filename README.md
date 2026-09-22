@@ -73,11 +73,16 @@ separado).
 ## Configurando o Supabase
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Rode a migration e o seed (SQL Editor do painel, ou via Supabase CLI):
-   ```bash
-   supabase db push                       # aplica supabase/migrations/0001_init.sql
-   psql "$DATABASE_URL" -f supabase/seed.sql   # ou cole o conteúdo no SQL Editor
-   ```
+2. Rode a migration e o seed. Duas formas:
+   - **SQL Editor** do painel: cole o conteúdo de `supabase/migrations/0001_init.sql` e rode,
+     depois cole `supabase/seed.sql` e rode.
+   - **Script deste repo** (roda do seu terminal, sem colar no navegador):
+     ```bash
+     export DATABASE_URL="postgresql://...connection string do Supabase..."  # Settings → Database
+     pnpm db:run supabase/migrations/0001_init.sql
+     pnpm db:run supabase/seed.sql
+     ```
+     Prefira a connection string da variante **Session pooler** (compatível com redes só-IPv4).
 3. Em **Authentication → Providers**, deixe o login por e-mail/senha habilitado (padrão).
 4. Copie a **Project URL** e a **anon public key** (Settings → API) para as variáveis de
    ambiente de cada app (veja abaixo).
