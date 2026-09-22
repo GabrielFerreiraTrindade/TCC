@@ -42,7 +42,7 @@ export default function LoginPage() {
             placeholder="E-mail"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-indigo-500 focus:outline-none"
           />
           <input
             type="password"
@@ -50,23 +50,23 @@ export default function LoginPage() {
             placeholder="Senha"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-indigo-500 focus:outline-none"
           />
         </div>
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+          className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-60"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
 
         <p className="text-center text-sm text-slate-600">
           Não tem conta?{" "}
-          <Link href="/signup" className="font-semibold text-blue-600 hover:underline">
+          <Link href="/signup" className="font-semibold text-indigo-600 hover:underline">
             Criar conta
           </Link>
         </p>

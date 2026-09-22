@@ -4,7 +4,7 @@ export default function LandingPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-24">
       <div className="w-full max-w-2xl text-center">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-blue-600">Estude por níveis</p>
+        <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-indigo-600">Estude por níveis</p>
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">StudyQuest</h1>
         <p className="mt-6 text-lg text-slate-600">
           Prepare-se para certificações como o CCNA respondendo perguntas curtas e intuitivas. Um diagnóstico inicial
@@ -15,7 +15,7 @@ export default function LandingPage() {
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
             href="/signup"
-            className="w-full rounded-lg bg-blue-600 px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-blue-700 sm:w-auto"
+            className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-indigo-700 sm:w-auto"
           >
             Criar conta
           </Link>

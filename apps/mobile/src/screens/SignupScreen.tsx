@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: "800", color: "#0f172a", marginBottom: 8, textAlign: "center" },
   subtitle: { color: "#475569", textAlign: "center", marginBottom: 24 },
   input: { backgroundColor: "#f1f5f9", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
-  button: { backgroundColor: "#2563eb", borderRadius: 8, paddingVertical: 14, alignItems: "center", marginTop: 8 },
+  button: { backgroundColor: "#4f46e5", borderRadius: 8, paddingVertical: 14, alignItems: "center", marginTop: 8 },
   buttonText: { color: "#fff", fontWeight: "700" },
-  error: { color: "#dc2626", textAlign: "center" },
+  error: { color: "#e11d48", textAlign: "center" },
 });

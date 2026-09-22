@@ -29,7 +29,7 @@ function ProfileContent() {
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
       </div>
     );
   }
@@ -38,7 +38,7 @@ function ProfileContent() {
     <main className="mx-auto w-full max-w-xl flex-1 space-y-6 px-6 py-10">
       <div className="rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
         <p className="text-lg font-semibold text-slate-900">{profile?.username}</p>
-        <p className="text-3xl font-extrabold text-green-600">{profile?.totalPoints ?? 0} pontos</p>
+        <p className="text-3xl font-extrabold text-emerald-600">{profile?.totalPoints ?? 0} pontos</p>
       </div>
 
       <div>
@@ -48,12 +48,12 @@ function ProfileContent() {
             <li
               key={entry.id}
               className={`flex items-center gap-3 rounded-lg bg-white px-4 py-3 shadow-sm ring-1 ${
-                entry.id === profile?.id ? "ring-2 ring-blue-500" : "ring-slate-200"
+                entry.id === profile?.id ? "ring-2 ring-indigo-500" : "ring-slate-200"
               }`}
             >
               <span className="w-6 font-bold text-slate-500">{position + 1}</span>
               <span className="flex-1 font-semibold text-slate-900">{entry.username}</span>
-              <span className="font-bold text-green-600">{entry.totalPoints}</span>
+              <span className="font-bold text-emerald-600">{entry.totalPoints}</span>
             </li>
           ))}
         </ol>

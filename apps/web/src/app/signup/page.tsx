@@ -35,7 +35,7 @@ export default function SignupPage() {
           <p className="text-slate-600">Confirme seu e-mail para poder entrar no StudyQuest.</p>
           <Link
             href="/login"
-            className="inline-block rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700"
+            className="inline-block rounded-lg bg-indigo-600 px-4 py-2.5 font-semibold text-white hover:bg-indigo-700"
           >
             Voltar para o login
           </Link>
@@ -59,7 +59,7 @@ export default function SignupPage() {
             placeholder="Nome de usuário"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-indigo-500 focus:outline-none"
           />
           <input
             type="email"
@@ -67,7 +67,7 @@ export default function SignupPage() {
             placeholder="E-mail"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-indigo-500 focus:outline-none"
           />
           <input
             type="password"
@@ -76,23 +76,23 @@ export default function SignupPage() {
             placeholder="Senha"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-indigo-500 focus:outline-none"
           />
         </div>
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+          className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-60"
         >
           {loading ? "Criando..." : "Criar conta"}
         </button>
 
         <p className="text-center text-sm text-slate-600">
           Já tem conta?{" "}
-          <Link href="/login" className="font-semibold text-blue-600 hover:underline">
+          <Link href="/login" className="font-semibold text-indigo-600 hover:underline">
             Entrar
           </Link>
         </p>

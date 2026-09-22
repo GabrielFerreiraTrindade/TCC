@@ -30,19 +30,19 @@ function ResultsContent() {
       </h1>
 
       <div className="w-full space-y-2 rounded-xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
-        <p className="text-4xl font-extrabold text-green-600">+{totalPoints} pontos</p>
+        <p className="text-4xl font-extrabold text-emerald-600">+{totalPoints} pontos</p>
         <p className="text-slate-700">
           {correctCount} de {questionsCount} corretas ({accuracy}%)
         </p>
         <p className="mt-2 text-slate-700">
           {mode === "diagnostic" ? "Nível recomendado: " : "Seu novo nível: "}
-          <span className="font-extrabold text-blue-600">{LEVEL_LABEL[recommendedLevel]}</span>
+          <span className="font-extrabold text-indigo-600">{LEVEL_LABEL[recommendedLevel]}</span>
         </p>
       </div>
 
       <button
         onClick={() => router.replace(`/quiz?mode=practice&difficulty=${recommendedLevel}`)}
-        className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+        className="w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
       >
         Praticar mais
       </button>

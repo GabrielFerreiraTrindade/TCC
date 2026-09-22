@@ -43,7 +43,7 @@ function DashboardContent() {
   if (loading || !track) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
       </div>
     );
   }
@@ -52,7 +52,7 @@ function DashboardContent() {
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-6 py-10">
       <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h1 className="text-lg font-semibold text-slate-900">Olá, {profile?.username}</h1>
-        <p className="mt-1 text-3xl font-extrabold text-green-600">{profile?.totalPoints ?? 0} pontos</p>
+        <p className="mt-1 text-3xl font-extrabold text-emerald-600">{profile?.totalPoints ?? 0} pontos</p>
       </div>
 
       <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -64,7 +64,7 @@ function DashboardContent() {
             <p className="mt-4 font-semibold text-slate-800">Seu nível atual: {LEVEL_LABEL[level]}</p>
             <button
               onClick={() => router.push(`/quiz?mode=practice&difficulty=${level}`)}
-              className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+              className="mt-3 w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
             >
               Praticar ({LEVEL_LABEL[level]})
             </button>
@@ -76,7 +76,7 @@ function DashboardContent() {
             </p>
             <button
               onClick={() => router.push("/quiz?mode=diagnostic")}
-              className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+              className="mt-3 w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
             >
               Iniciar diagnóstico
             </button>

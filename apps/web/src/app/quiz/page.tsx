@@ -165,7 +165,7 @@ function QuizContent() {
   if (loading || !currentQuestion) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
       </div>
     );
   }
@@ -176,7 +176,7 @@ function QuizContent() {
         <span className="font-semibold text-slate-600">
           Pergunta {index + 1} de {questions.length}
         </span>
-        <span className={`text-lg font-extrabold ${secondsLeft <= 5 ? "text-red-600" : "text-slate-900"}`}>
+        <span className={`text-lg font-extrabold ${secondsLeft <= 5 ? "text-rose-600" : "text-slate-900"}`}>
           {secondsLeft}s
         </span>
       </div>
@@ -197,9 +197,9 @@ function QuizContent() {
               disabled={!!answered}
               className={`w-full rounded-lg border px-4 py-3 text-left font-medium transition-colors ${
                 isSelectedWrong
-                  ? "border-red-500 bg-red-50"
+                  ? "border-rose-500 bg-rose-50"
                   : isCorrectOption
-                    ? "border-green-500 bg-green-50"
+                    ? "border-emerald-500 bg-emerald-50"
                     : "border-slate-300 bg-white hover:bg-slate-50"
               }`}
             >
@@ -217,7 +217,7 @@ function QuizContent() {
           {answered.explanation ? <p className="text-slate-600">{answered.explanation}</p> : null}
           <button
             onClick={() => void handleNext()}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+            className="w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
           >
             {index + 1 < questions.length ? "Próxima pergunta" : "Ver resultado"}
           </button>

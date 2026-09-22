@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   card: { backgroundColor: "#fff", borderRadius: 12, padding: 20, alignItems: "center", gap: 4 },
   username: { fontSize: 20, fontWeight: "700", color: "#0f172a" },
-  points: { fontSize: 28, fontWeight: "800", color: "#16a34a" },
+  points: { fontSize: 28, fontWeight: "800", color: "#059669" },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a" },
   row: {
     flexDirection: "row",
@@ -71,8 +71,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 12,
   },
-  rowHighlight: { borderWidth: 2, borderColor: "#2563eb" },
+  rowHighlight: { borderWidth: 2, borderColor: "#4f46e5" },
   rowPosition: { width: 24, fontWeight: "700", color: "#64748b" },
   rowUsername: { flex: 1, fontWeight: "600", color: "#0f172a" },
-  rowPoints: { fontWeight: "700", color: "#16a34a" },
+  rowPoints: { fontWeight: "700", color: "#059669" },
 });
